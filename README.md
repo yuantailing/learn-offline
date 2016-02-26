@@ -33,6 +33,21 @@
 - 不含课程讨论区帖子的附件。
 - 保留了原网页的大部分信息，而不只是文件本身。
 - 正确处理了一部分样式表和图片资源。
+- 可以更改learn.config.ini中download_note_list的值，1表示下载课程公告，0表示不下载用户公告。其它选项类似，有如下对应关系：
+
+    | 键                     | 对应页面 |
+    | ---------------------- | -------- |
+    | download_course_locate | 课程首页 |
+    | download_note_list     | 课程公告 |
+    | download_course_info   | 课程信息 |
+    | download_download      | 课程文件 |
+    | download_ware_list     | 教学资源 |
+    | download_homework      | 课程作业 |
+    | download_bbs_list      | 课程答疑 |
+    | download_talk_list     | 课程讨论 |
+
+  其中，课程首页由于大部分浏览器的本地文件安全策略而无法正常显示；课程答疑不支持下载，即使设为1也不会下载。
+- 把learn.config.ini中http换成https就会使用https协议，但不提供CA认证，也不确定网络学堂能否完整支持https。
 
 ## 说明
 
