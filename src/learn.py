@@ -114,7 +114,16 @@ class Learn:
 
     @staticmethod
     def filename_escape(text):
-        return re.compile(r'[\\/:\*\?"<>|]').sub('+', text)
+        text = re.compile(r'[\\/:\*\?"<>|].*').sub('', text)
+        return '_' if text == '' else text
+
+    def echo_success(self, text):
+        if self.system_echo == 'on':
+            print '[OK]', text
+
+    def echo_failed(self, text):
+        if self.system_echo == 'on':
+            print '[FAILED]', text
 
     def relative_url_exempt(self, text, folder, home_path='.'):
         def assest_download(match):
@@ -130,13 +139,16 @@ class Learn:
                 self.loaded_assest[folder] = set()
             if (hash not in self.loaded_assest[folder]):
                 self.loaded_assest[folder].add(hash)
-                response = self.opener.open("%s%s" % (self.url_baseurl, url))
-                page = response.read()
-                file = open(os.path.join(assest_folder, filename), "wb")
-                file.write(page)
-                file.close()
-                if self.system_echo == 'on':
-                    print '[OK]', file.name
+                try:
+                    response = self.opener.open("%s%s" % (self.url_baseurl, url))
+                    page = response.read()
+                    file = open(os.path.join(assest_folder, filename), "wb")
+                    file.write(page)
+                    file.close()
+                    self.echo_success(file.name)
+                except Exception as e:
+                    print e
+                    self.echo_failed(os.path.join(assest_folder, filename))
             return r'%s="%s/assest/%s"' % (attr, home_path, filename)
         return re.compile(r'(href|src)=("|\')(/[^"\']+)("|\')').sub(assest_download, text)
     
@@ -155,18 +167,22 @@ class Learn:
         if (relative_url in self.downloaded_file[folder]):
             return self.downloaded_file[folder][relative_url]
         url = "%s%s" % (self.url_baseurl, relative_url)
-        response = self.opener.open(url)
-        page = response.read()
-        filename = re.match(r'^attachment;filename=(.+)$', response.info().getheader('Content-Disposition')).group(1)[1: -1]
-        filename = self.header_decode_to_char(filename)
-        filename = self.filename_escape(filename)
-        file = open(os.path.join(folder, filename), "wb")
-        file.write(page)
-        file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
-        self.downloaded_file[folder][relative_url] = filename
-        return filename
+        try:
+            response = self.opener.open(url)
+            page = response.read()
+            filename = re.match(r'^attachment;filename=(.+)$', response.info().getheader('Content-Disposition')).group(1)[1: -1]
+            filename = self.header_decode_to_char(filename)
+            filename = self.filename_escape(filename)
+            file = open(os.path.join(folder, filename), "wb")
+            file.write(page)
+            file.close()
+            self.echo_success(file.name)
+            self.downloaded_file[folder][relative_url] = filename
+            return filename
+        except Exception as e:
+            print e
+            self.echo_failed(url)
+            return '404'
     
     def login(self):
         request = urllib2.Request(self.url_login)
@@ -236,8 +252,7 @@ class Learn:
         file = open(os.path.join(folder, "index.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
+        self.echo_success(file.name)
 
     def download_note_list(self, course_id, folder):
         def note_download(match):
@@ -250,8 +265,7 @@ class Learn:
             file = open(os.path.join(notes_folder, "%d.html" % (note_id)), "w")
             file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder, '..')))
             file.close()
-            if self.system_echo == 'on':
-                print '[OK]', file.name
+            self.echo_success(file.name)
             return r'<a href="notes/%d.html">' % note_id
         response = self.opener.open("%s?course_id=%d" % (self.url_getnoteid_student, course_id))
         page = self.html_decode_to_char(response.read())
@@ -259,8 +273,7 @@ class Learn:
         file = open(os.path.join(folder, "note_list.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
+        self.echo_success(file.name)
 
     def download_course_info(self, course_id, folder):
         response = self.opener.open("%s?course_id=%d" % (self.url_course_info, course_id))
@@ -268,8 +281,7 @@ class Learn:
         file = open(os.path.join(folder, "course_info.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
+        self.echo_success(file.name)
         
     def download_download(self, course_id, folder):
         def file_download(match):
@@ -285,8 +297,7 @@ class Learn:
         file = open(os.path.join(folder, "download.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
+        self.echo_success(file.name)
 
     def download_ware_list(self, course_id, folder):
         response = self.opener.open("%s?course_id=%d" % (self.url_ware_list, course_id))
@@ -294,8 +305,7 @@ class Learn:
         file = open(os.path.join(folder, "ware_list.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
+        self.echo_success(file.name)
         
     def download_homework(self, course_id, folder):
         def attachment(match):
@@ -317,8 +327,7 @@ class Learn:
             file = open(os.path.join(file_folder, filename), "w")
             file.write(self.relative_url_exempt(page, folder, ".."))
             file.close()
-            if self.system_echo == 'on':
-                print '[OK]', file.name
+            self.echo_success(file.name)
             return r'<a href="homework/%d_detail.html">' % (homework_id)
         def homework_view(match):
             file_folder = os.path.join(folder, 'homework')
@@ -333,8 +342,7 @@ class Learn:
             file = open(os.path.join(file_folder, filename), "w")
             file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder, "..")))
             file.close()
-            if self.system_echo == 'on':
-                print '[OK]', file.name
+            self.echo_success(file.name)
             return 'onclick="javascript:window.location.href=\'homework/%d_view.html\'"' % (homework_id)
         response = self.opener.open("%s?course_id=%d" % (self.url_homework, course_id))
         page = self.html_decode_to_char(response.read())
@@ -343,8 +351,7 @@ class Learn:
         file = open(os.path.join(folder, "homework.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
+        self.echo_success(file.name)
         
     def download_bbs_list(self, course_id, folder):
         pass
@@ -361,8 +368,7 @@ class Learn:
             file = open(os.path.join(notes_folder, "%d.html" % (talk_id)), "w")
             file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder, '..')))
             file.close()
-            if self.system_echo == 'on':
-                print '[OK]', file.name
+            self.echo_success(file.name)
             return r'<a href="talks/%d.html">' % talk_id
         response = self.opener.open("%s?course_id=%d" % (self.url_talk_list, course_id))
         page = self.html_decode_to_char(response.read())
@@ -370,9 +376,7 @@ class Learn:
         file = open(os.path.join(folder, "talk_list.html"), "w")
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
-        if self.system_echo == 'on':
-            print '[OK]', file.name
-        pass
+        self.echo_success(file.name)
 
 
 if __name__ == "__main__":
