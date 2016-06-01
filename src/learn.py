@@ -245,7 +245,7 @@ class Learn:
                 r'/MultiLanguage/public/bbs/gettalkid_student.jsp': 'talk_list.html',
                 r'/MultiLanguage/public/discuss/main.jsp': '#',
             }
-            return (r'%s=%s' % (attr, replace[url])) if url in replace else (r'%s="#"' % (attr))
+            return (r'%s="%s"' % (attr, replace[url])) if url in replace else (r'%s="#"' % (attr))
         response = self.opener.open("%s?course_id=%d" % (self.url_course_locate, course_id))
         page = self.html_decode_to_char(response.read())
         page = re.compile(r'(href|src)="(/MultiLanguage/[^"\?]+)(\?[^"]+)?"').sub(local_file, page)
