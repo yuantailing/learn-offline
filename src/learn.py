@@ -1,5 +1,6 @@
 import ConfigParser
 import getpass
+import logging
 import urllib
 import urllib2
 import cookielib
@@ -20,6 +21,22 @@ class Learn:
         self.opener.addheaders = [('User-Agent', self.header_user_agent)]
         self.loaded_assest = {}
         self.downloaded_file = {}
+        self.init_logger()
+
+    def init_logger(self):
+        self.logger = logging.getLogger('mylogger')
+        self.logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        if self.system_log == 'on':
+            fh = logging.FileHandler('learn.log')
+            fh.setLevel(logging.DEBUG)
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
+        if self.system_echo == 'on':
+            ch = logging.StreamHandler()
+            ch.setLevel(logging.DEBUG)
+            ch.setFormatter(formatter)
+            self.logger.addHandler(ch)
         
     @property
     def url_baseurl(self):
@@ -79,6 +96,9 @@ class Learn:
     def browser_learn_encoding(self):
         return self.conf.get("browser", "learn_encoding")
     @property
+    def system_log(self):
+        return self.conf.get("system", "log")
+    @property
     def system_echo(self):
         return self.conf.get("system", "echo")
     @property
@@ -118,12 +138,10 @@ class Learn:
         return '_' if text == '' else text
 
     def echo_success(self, text):
-        if self.system_echo == 'on':
-            print '[OK]', text
+        self.logger.info("[ OK ] %s" % (text))
 
     def echo_failed(self, text):
-        if self.system_echo == 'on':
-            print '[FAILED]', text
+        self.logger.warning("[FAIL] %s" % (text))
 
     def relative_url_exempt(self, text, folder, home_path='.'):
         def assest_download(match):
