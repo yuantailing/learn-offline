@@ -37,7 +37,7 @@ class Learn:
             ch.setLevel(logging.DEBUG)
             ch.setFormatter(formatter)
             self.logger.addHandler(ch)
-        
+
     @property
     def url_baseurl(self):
         return self.conf.get("url", "baseurl")
@@ -169,16 +169,16 @@ class Learn:
                     self.echo_failed(os.path.join(assest_folder, filename))
             return r'%s="%s/assest/%s"' % (attr, home_path, filename)
         return re.compile(r'(href|src)=("|\')(/[^"\']+)("|\')').sub(assest_download, text)
-    
+
     def header_decode_to_char(self, text):
         return text.decode(self.browser_learn_header_encoding)
-    
+
     def html_decode_to_char(self, text):
         return text.decode(self.browser_learn_encoding)
-        
+
     def char_encode_to_html(self, text):
         return text.encode(self.browser_default_encoding, 'ignore')
-        
+
     def file_download(self, relative_url, folder): # return filename
         if (folder not in self.downloaded_file):
             self.downloaded_file[folder] = {}
@@ -201,7 +201,7 @@ class Learn:
             print e
             self.echo_failed(url)
             return '404'
-    
+
     def login(self):
         request = urllib2.Request(self.url_login)
         username = self.user_username
@@ -209,7 +209,12 @@ class Learn:
         data = urllib.urlencode({"userid": username, "userpass": password})
         response = self.opener.open(request, data)
         self.cookie.save(ignore_discard=True, ignore_expires=True)
-        
+
+    def check_login(self):
+        response = self.opener.open(self.url_courselist)
+        the_page = self.html_decode_to_char(response.read())
+        return not not re.search(r'table id=\"e_menu\"', the_page)
+
     def load_courselist(self):
         response = self.opener.open(self.url_courselist)
         the_page = self.html_decode_to_char(response.read())
@@ -222,7 +227,7 @@ class Learn:
         print "%9s %-17s %s" % ("course_id", "term", "course_name")
         for course in self.courselist:
             print "%9d %13s %s" % (course[0], course[3], course[1])
-            
+
     def download_course(self):
         course_id = int(raw_input("course_id: "))
         for course in self.courselist:
@@ -300,7 +305,7 @@ class Learn:
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
         self.echo_success(file.name)
-        
+
     def download_download(self, course_id, folder):
         def file_download(match):
             file_folder = os.path.join(folder, 'download')
@@ -324,7 +329,7 @@ class Learn:
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
         self.echo_success(file.name)
-        
+
     def download_homework(self, course_id, folder):
         def attachment(match):
             file_folder = os.path.join(folder, 'homework', 'attachment')
@@ -370,10 +375,10 @@ class Learn:
         file.write(self.char_encode_to_html(self.relative_url_exempt(page, folder)))
         file.close()
         self.echo_success(file.name)
-        
+
     def download_bbs_list(self, course_id, folder):
         pass
-        
+
     def download_talk_list(self, course_id, folder):
         def talk_download(match):
             notes_folder = os.path.join(folder, 'talks')
@@ -401,9 +406,8 @@ if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf-8')
     learn = Learn("./learn.config.ini")
-    learn.load_courselist()
-    if (len(learn.courselist) == 0):
+    while not learn.check_login():
         learn.login()
-        learn.load_courselist()
+    learn.load_courselist()
     learn.show_courselist()
     learn.download_course()
